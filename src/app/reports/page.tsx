@@ -1,23 +1,47 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useData } from '@/lib/data-context';
 import { useFilters } from '@/lib/filter-context';
 import { FilterBar } from '@/components/filter-bar';
 import { Icon } from '@/components/Icon';
 import printer from 'lucide-static/icons/printer.svg';
-import { formatDKK, formatHours, getMonthLabelFull, getMonthLabel } from '@/lib/date-utils';
-import { sumDKK, sumHours, avgRate, getEntriesYTD, getEntriesForMonth, activeProjectCount } from '@/lib/calculations';
+import { formatDKK, formatHours, getMonthLabelFull, getMonthLabel, getWeekLabel } from '@/lib/date-utils';
+import { sumDKK, sumHours, avgRate, getEntriesForMonth, activeProjectCount } from '@/lib/calculations';
 
 export default function ReportsPage() {
   const { data, loading, error } = useData();
   const { filteredEntries, selectedYear, selectedMonth, isAllTime } = useFilters();
+  const [reportMode, setReportMode] = useState<'monthly' | 'weekly'>('monthly');
 
-  const ytdEntries = useMemo(() => isAllTime ? filteredEntries : getEntriesYTD(filteredEntries, selectedYear, selectedMonth), [filteredEntries, selectedYear, selectedMonth, isAllTime]);
+  // Force light mode during print so dark backgrounds don't bleed through
+  const handleBeforePrint = useCallback(() => {
+    document.documentElement.classList.remove('dark');
+    document.documentElement.style.colorScheme = 'light';
+  }, []);
+  const handleAfterPrint = useCallback(() => {
+    const stored = localStorage.getItem('kyodo-bi-theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (stored === 'dark' || (stored !== 'light' && prefersDark)) {
+      document.documentElement.classList.add('dark');
+      document.documentElement.style.colorScheme = 'dark';
+    }
+  }, []);
+  useEffect(() => {
+    window.addEventListener('beforeprint', handleBeforePrint);
+    window.addEventListener('afterprint', handleAfterPrint);
+    return () => {
+      window.removeEventListener('beforeprint', handleBeforePrint);
+      window.removeEventListener('afterprint', handleAfterPrint);
+    };
+  }, [handleBeforePrint, handleAfterPrint]);
+
+  // Single-month entries (or all entries in all-time mode)
+  const periodEntries = useMemo(() => isAllTime ? filteredEntries : getEntriesForMonth(filteredEntries, selectedYear, selectedMonth), [filteredEntries, selectedYear, selectedMonth, isAllTime]);
 
   const projectSummary = useMemo(() => {
     const map = new Map<string, { client: string; project: string; hours: number; revenue: number }>();
-    for (const e of ytdEntries) {
+    for (const e of periodEntries) {
       const key = `${e.client}-${e.project}`;
       if (!map.has(key)) map.set(key, { client: e.client, project: e.project, hours: 0, revenue: 0 });
       const p = map.get(key)!;
@@ -25,9 +49,10 @@ export default function ReportsPage() {
       p.revenue += e.totalDKK;
     }
     return [...map.values()].sort((a, b) => b.revenue - a.revenue);
-  }, [ytdEntries]);
+  }, [periodEntries]);
 
-  const monthlySummary = useMemo(() => {
+  // All-time: monthly breakdown; weekly mode: week breakdown; monthly mode: no breakdown needed
+  const periodBreakdown = useMemo(() => {
     if (isAllTime) {
       const map = new Map<string, { key: string; label: string; hours: number; revenue: number }>();
       for (const e of filteredEntries) {
@@ -40,57 +65,90 @@ export default function ReportsPage() {
         entry.hours += e.hours;
         entry.revenue += e.totalDKK;
       }
-      return [...map.values()].sort((a, b) => a.key.localeCompare(b.key)).map((v, i) => ({ month: i, ...v }));
+      return [...map.values()].sort((a, b) => a.key.localeCompare(b.key));
     }
-    const months: { month: number; label: string; hours: number; revenue: number }[] = [];
-    for (let m = 1; m <= selectedMonth; m++) {
-      const monthEntries = getEntriesForMonth(filteredEntries, selectedYear, m);
-      months.push({ month: m, label: `${getMonthLabel(m)} ${selectedYear}`, hours: sumHours(monthEntries), revenue: sumDKK(monthEntries) });
+    if (reportMode === 'weekly') {
+      const map = new Map<number, { week: number; label: string; hours: number; revenue: number }>();
+      for (const e of periodEntries) {
+        if (!map.has(e.week)) map.set(e.week, { week: e.week, label: getWeekLabel(e.week), hours: 0, revenue: 0 });
+        const w = map.get(e.week)!;
+        w.hours += e.hours;
+        w.revenue += e.totalDKK;
+      }
+      return [...map.values()].sort((a, b) => a.week - b.week);
     }
-    return months;
-  }, [filteredEntries, selectedYear, selectedMonth, isAllTime]);
+    return [];
+  }, [filteredEntries, periodEntries, selectedYear, selectedMonth, isAllTime, reportMode]);
+
+  // Week range for subtitle
+  const weekRange = useMemo(() => {
+    if (isAllTime || reportMode !== 'weekly' || periodEntries.length === 0) return null;
+    const weeks = [...new Set(periodEntries.map(e => e.week))].sort((a, b) => a - b);
+    return { min: weeks[0], max: weeks[weeks.length - 1] };
+  }, [periodEntries, isAllTime, reportMode]);
 
   const resourceSummary = useMemo(() => {
     const map = new Map<string, { resource: string; hours: number; revenue: number }>();
-    for (const e of ytdEntries) {
+    for (const e of periodEntries) {
       if (!map.has(e.resource)) map.set(e.resource, { resource: e.resource, hours: 0, revenue: 0 });
       const r = map.get(e.resource)!;
       r.hours += e.hours;
       r.revenue += e.totalDKK;
     }
     return [...map.values()].sort((a, b) => b.revenue - a.revenue);
-  }, [ytdEntries]);
+  }, [periodEntries]);
 
   if (loading) return <div className="flex items-center justify-center h-screen"><div className="animate-pulse text-stone-400">Loading...</div></div>;
   if (error || !data) return <div className="flex items-center justify-center h-screen"><div className="text-red-500">Error: {error}</div></div>;
 
-  const totalHours = sumHours(ytdEntries);
-  const totalRevenue = sumDKK(ytdEntries);
-  const rate = avgRate(ytdEntries);
-  const projects = activeProjectCount(ytdEntries);
+  const totalHours = sumHours(periodEntries);
+  const totalRevenue = sumDKK(periodEntries);
+  const rate = avgRate(periodEntries);
+  const projects = activeProjectCount(periodEntries);
 
   const thClass = "px-4 py-2.5 text-left text-xs text-stone-500 dark:text-stone-400 uppercase tracking-wider";
   const tdClass = "px-4 py-2 text-stone-700 dark:text-stone-300";
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#0a0a0a]">
+    <div className="bg-white dark:bg-[#0a0a0a]">
       <div className="no-print"><FilterBar /></div>
 
-      <div className="p-6 no-print">
+      <div className="p-6 no-print flex items-center gap-3">
         <button onClick={() => window.print()}
           className="h-9 px-4 text-sm font-medium text-white bg-stone-900 dark:bg-stone-700 rounded-lg hover:bg-stone-800 dark:hover:bg-stone-600 transition-colors flex items-center gap-2"
         >
           <Icon src={printer} className="size-3.5" />
           Print / Save as PDF
         </button>
+        {!isAllTime && (
+          <div className="flex h-9 rounded-lg border border-stone-200 dark:border-white/[0.10] overflow-hidden">
+            {(['monthly', 'weekly'] as const).map(mode => (
+              <button key={mode} onClick={() => setReportMode(mode)}
+                className={`px-3.5 text-sm font-medium transition-colors ${reportMode === mode
+                  ? 'bg-stone-900 dark:bg-stone-700 text-white'
+                  : 'bg-white dark:bg-transparent text-stone-600 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-white/[0.04]'
+                }`}
+              >
+                {mode === 'monthly' ? 'Monthly' : 'Weekly'}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="px-6 pb-8 max-w-4xl mx-auto" id="report-content">
-        <div className="border-b-2 border-indigo-500 pb-4 mb-6">
+        <div className="border-b-2 border-stone-300 dark:border-stone-700 pb-4 mb-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-semibold text-stone-900 dark:text-stone-100">Kyodo Monthly Report</h2>
-              <p className="text-stone-500 dark:text-stone-400 mt-1">Period: {isAllTime ? 'All Time' : `January - ${getMonthLabelFull(selectedMonth)} ${selectedYear}`}</p>
+              <h2 className="text-2xl font-semibold text-stone-900 dark:text-stone-100">
+                {isAllTime ? 'Kyodo Report' : reportMode === 'weekly' ? 'Kyodo Weekly Report' : 'Kyodo Monthly Report'}
+              </h2>
+              <p className="text-stone-500 dark:text-stone-400 mt-1">Period: {
+                isAllTime ? 'All Time'
+                  : reportMode === 'weekly' && weekRange
+                    ? `Week ${weekRange.min}–${weekRange.max}, ${getMonthLabelFull(selectedMonth)} ${selectedYear}`
+                    : `${getMonthLabelFull(selectedMonth)} ${selectedYear}`
+              }</p>
             </div>
             <span className="text-lg font-semibold tracking-tight text-stone-900 dark:text-stone-100">
               kyodo <span className="text-stone-500 dark:text-stone-400">lab</span>
@@ -115,39 +173,43 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        <div className="mb-8">
-          <h3 className="text-sm font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider mb-3">Monthly Breakdown</h3>
-          <table className="w-full text-sm border border-stone-200 dark:border-white/[0.10] rounded-lg overflow-hidden">
-            <thead>
-              <tr className="bg-stone-50 dark:bg-white/[0.03]">
-                <th className={thClass}>Month</th>
-                <th className={`${thClass} text-right`}>Hours</th>
-                <th className={`${thClass} text-right`}>Revenue</th>
-                <th className={`${thClass} text-right`}>Avg Rate</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-stone-100 dark:divide-white/[0.06]">
-              {monthlySummary.map(m => (
-                <tr key={m.month}>
-                  <td className={tdClass}>{m.label}</td>
-                  <td className={`${tdClass} text-right`}>{formatHours(m.hours)}</td>
-                  <td className={`${tdClass} text-right font-medium text-stone-900 dark:text-stone-100`}>{formatDKK(m.revenue)} kr.</td>
-                  <td className={`${tdClass} text-right`}>{m.hours > 0 ? `${formatDKK(Math.round(m.revenue / m.hours))} kr.` : '—'}</td>
+        {periodBreakdown.length > 0 && (
+          <div className="mb-8">
+            <h3 className="text-sm font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider mb-3">
+              {isAllTime ? 'Monthly Breakdown' : 'Weekly Breakdown'}
+            </h3>
+            <table className="w-full text-sm border border-stone-200 dark:border-white/[0.10] rounded-lg overflow-hidden">
+              <thead>
+                <tr className="bg-stone-50 dark:bg-white/[0.03]">
+                  <th className={thClass}>{isAllTime ? 'Month' : 'Week'}</th>
+                  <th className={`${thClass} text-right`}>Hours</th>
+                  <th className={`${thClass} text-right`}>Revenue</th>
+                  <th className={`${thClass} text-right`}>Avg Rate</th>
                 </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr className="bg-stone-50 dark:bg-white/[0.03] font-semibold border-t border-stone-200 dark:border-white/[0.06]">
-                <td className="px-4 py-2 text-stone-900 dark:text-stone-100">Total</td>
-                <td className="px-4 py-2 text-right text-stone-900 dark:text-stone-100">{formatHours(totalHours)}</td>
-                <td className="px-4 py-2 text-right text-stone-900 dark:text-stone-100">{formatDKK(totalRevenue)} kr.</td>
-                <td className="px-4 py-2 text-right text-stone-500 dark:text-stone-400">{totalHours > 0 ? `${formatDKK(Math.round(rate))} kr.` : '—'}</td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-stone-100 dark:divide-white/[0.06]">
+                {periodBreakdown.map((row, i) => (
+                  <tr key={i}>
+                    <td className={tdClass}>{row.label}</td>
+                    <td className={`${tdClass} text-right`}>{formatHours(row.hours)}</td>
+                    <td className={`${tdClass} text-right font-medium text-stone-900 dark:text-stone-100`}>{formatDKK(row.revenue)} kr.</td>
+                    <td className={`${tdClass} text-right`}>{row.hours > 0 ? `${formatDKK(Math.round(row.revenue / row.hours))} kr.` : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="bg-stone-50 dark:bg-white/[0.03] font-semibold border-t border-stone-200 dark:border-white/[0.06]">
+                  <td className="px-4 py-2 text-stone-900 dark:text-stone-100">Total</td>
+                  <td className="px-4 py-2 text-right text-stone-900 dark:text-stone-100">{formatHours(totalHours)}</td>
+                  <td className="px-4 py-2 text-right text-stone-900 dark:text-stone-100">{formatDKK(totalRevenue)} kr.</td>
+                  <td className="px-4 py-2 text-right text-stone-500 dark:text-stone-400">{totalHours > 0 ? `${formatDKK(Math.round(rate))} kr.` : '—'}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        )}
 
-        <div className="mb-8 print-break">
+        <div className="mb-8">
           <h3 className="text-sm font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider mb-3">Project Breakdown</h3>
           <table className="w-full text-sm border border-stone-200 dark:border-white/[0.10] rounded-lg overflow-hidden">
             <thead>

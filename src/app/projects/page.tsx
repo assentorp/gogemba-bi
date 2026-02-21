@@ -24,7 +24,7 @@ import { formatDKK, formatHours, getMonthLabel } from '@/lib/date-utils';
 import { sumDKK, sumHours, getEntriesYTD } from '@/lib/calculations';
 import type { TimesheetEntry } from '@/lib/types';
 
-const COLORS = ['#6366f1', '#3b82f6', '#22c55e', '#ef4444', '#8b5cf6', '#f59e0b', '#06b6d4', '#ec4899', '#14b8a6', '#a855f7'];
+const COLORS = ['#292524', '#44403c', '#57534e', '#78716c', '#a8a29e', '#d6d3d1', '#e7e5e4', '#a3a3a3', '#737373', '#525252'];
 
 interface ProjectSummary {
   project: string;
@@ -42,7 +42,7 @@ function CustomTooltip({ active, payload, label }: any) {
     <div className="bg-white dark:bg-[#1e1e20] rounded-lg shadow-lg border border-stone-200 dark:border-white/[0.10] p-3 text-sm">
       <p className="font-medium text-stone-900 dark:text-stone-100 mb-1">{label}</p>
       {payload.map((entry: any, i: number) => (
-        <p key={i} style={{ color: entry.color }}>
+        <p key={i} className="text-stone-700 dark:text-stone-300">
           {entry.name}: {formatDKK(entry.value)} kr.
         </p>
       ))}
@@ -103,7 +103,7 @@ export default function ProjectsPage() {
   if (error || !data) return <div className="flex items-center justify-center h-screen"><div className="text-red-500">Error: {error}</div></div>;
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#0a0a0a]">
+    <div className="bg-white dark:bg-[#0a0a0a]">
       <FilterBar />
 
       <div className="p-6 space-y-5">
@@ -115,7 +115,7 @@ export default function ProjectsPage() {
             { label: 'Avg Rate', value: `${formatDKK(Math.round(totalHours > 0 ? totalRevenue / totalHours : 0))} kr.` },
           ].map((card, i) => (
             <div key={i} className="bg-white dark:bg-[#161618] rounded-xl border border-stone-200 dark:border-white/[0.10] p-4">
-              <p className="text-[10px] text-stone-500 dark:text-stone-400 uppercase tracking-wider">{card.label}</p>
+              <p className="text-[11px] text-stone-500 dark:text-stone-400 uppercase tracking-wider">{card.label}</p>
               <p className="text-2xl font-semibold mt-1 text-stone-900 dark:text-stone-100">{card.value}</p>
             </div>
           ))}
@@ -131,7 +131,7 @@ export default function ProjectsPage() {
                   <XAxis type="number" tickFormatter={v => `${(v / 1000).toFixed(0)}K`} tick={{ fontSize: 11, fill: textColor }} />
                   <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 11, fill: textColor }} />
                   <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="revenue" name="Revenue" fill="#6366f1" radius={[0, 4, 4, 0]} maxBarSize={24} />
+                  <Bar dataKey="revenue" name="Revenue" fill={isDark ? '#e5e5e5' : '#292524'} radius={[0, 4, 4, 0]} maxBarSize={24} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -143,8 +143,12 @@ export default function ProjectsPage() {
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie data={clientBreakdown} cx="50%" cy="50%" innerRadius="40%" outerRadius="70%" dataKey="value"
-                    label={({ name, percent }) => `${name} (${((percent ?? 0) * 100).toFixed(0)}%)`}
-                    labelLine={{ strokeWidth: 1 }}
+                    label={({ name, percent, x, y, textAnchor }) => (
+                      <text x={x} y={y} textAnchor={textAnchor} fill={isDark ? '#d6d3d1' : '#44403c'} fontSize={12}>
+                        {name} ({((percent ?? 0) * 100).toFixed(0)}%)
+                      </text>
+                    )}
+                    labelLine={{ strokeWidth: 1, stroke: isDark ? '#525252' : '#d6d3d1' }}
                   >
                     {clientBreakdown.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                   </Pie>
@@ -161,7 +165,7 @@ export default function ProjectsPage() {
             <div className="flex gap-2 text-xs">
               {(['revenue', 'hours'] as const).map(f => (
                 <button key={f} onClick={() => setSortField(f)}
-                  className={`px-2 py-1 rounded ${sortField === f ? 'bg-indigo-500/10 text-stone-900 dark:text-stone-100 font-medium' : 'text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200'}`}
+                  className={`px-2 py-1 rounded ${sortField === f ? 'bg-stone-100 dark:bg-white/[0.06] text-stone-900 dark:text-stone-100 font-medium' : 'text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200'}`}
                 >
                   By {f === 'revenue' ? 'Revenue' : 'Hours'}
                 </button>

@@ -18,7 +18,7 @@ export function StatsTable({ kpi }: StatsTableProps) {
 
   return (
     <div className="bg-white dark:bg-[#161618] rounded-xl border border-stone-200 dark:border-white/[0.10] p-4">
-      <h4 className="text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider mb-3">Key Statistics (YTD)</h4>
+      <h4 className="text-sm font-medium text-stone-900 dark:text-stone-100 mb-3">Key Statistics (YTD)</h4>
       <div className="space-y-2">
         {rows.map((row, i) => (
           <div key={i} className="flex items-center justify-between py-1.5 border-b border-stone-100 dark:border-white/[0.06] last:border-0">

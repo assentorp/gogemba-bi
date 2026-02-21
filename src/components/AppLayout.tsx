@@ -27,7 +27,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#0a0a0a] overscroll-contain">
+    <div className="min-h-screen bg-white dark:bg-[#0a0a0a]">
       {/* Mobile header */}
       {isMobile && (
         <header className="fixed top-0 left-0 right-0 h-14 bg-white dark:bg-[#0a0a0a] border-b border-stone-200 dark:border-white/[0.06] z-50 flex items-center px-4">
@@ -76,7 +76,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       )}
 
       <main
-        className={`transition-[margin] duration-200 overscroll-contain ${
+        className={`transition-[margin] duration-200 ${
           isMobile
             ? 'ml-0 pt-14'
             : sidebarCollapsed

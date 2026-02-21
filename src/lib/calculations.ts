@@ -27,6 +27,10 @@ export function getEntriesForMonth(entries: TimesheetEntry[], year: number, mont
   return entries.filter(e => e.date.startsWith(prefix));
 }
 
+export function getEntriesForWeek(entries: TimesheetEntry[], year: number, week: number): TimesheetEntry[] {
+  return entries.filter(e => e.date.startsWith(`${year}`) && e.week === week);
+}
+
 export function getEntriesYTD(entries: TimesheetEntry[], year: number, month: number): TimesheetEntry[] {
   const start = `${year}-01-01`;
   const endMonth = String(month).padStart(2, '0');

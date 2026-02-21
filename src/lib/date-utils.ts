@@ -132,6 +132,10 @@ export function getMonthLabelFull(month: number): string {
   return labels[month] || '';
 }
 
+export function getWeekLabel(week: number): string {
+  return `Week ${week}`;
+}
+
 export function toMonthKey(year: number, month: number): string {
   return `${year}-${String(month).padStart(2, '0')}`;
 }

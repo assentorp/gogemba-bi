@@ -18,7 +18,7 @@ export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
 
   return (
-    <div className="bg-[#FCFCFC] dark:bg-[#0a0a0a] min-h-screen">
+    <div className="bg-[#FCFCFC] dark:bg-[#0a0a0a]">
       <div className="max-w-2xl mx-auto py-12 px-6">
         <header className="mb-10">
           <h1 className="text-3xl font-semibold text-neutral-900 dark:text-neutral-100 tracking-[-0.02em] mb-2">

@@ -7,8 +7,6 @@
   --color-foreground: #1a1612;
   --color-accent: #6366f1;
   --color-accent-light: #c7d2fe;
-  --color-positive: #22c55e;
-  --color-negative: #ef4444;
   --font-sans: var(--font-inter);
   --font-mono: var(--font-jetbrains);
 }
@@ -28,7 +26,7 @@ body {
 }
 
 html.dark body {
-  background: #000000;
+  background: #0a0a0a;
 }
 
 :root {
@@ -65,11 +63,42 @@ html.dark ::-webkit-scrollbar-thumb:hover {
   .no-print {
     display: none !important;
   }
-  .print-break {
-    page-break-before: always;
+
+  /* Hide sidebar, breadcrumb, mobile header */
+  aside, nav, header {
+    display: none !important;
   }
-  body {
-    background: white;
-    color: black;
+
+  /* Remove sidebar margin/padding from main */
+  main {
+    margin-left: 0 !important;
+    padding-top: 0 !important;
+  }
+
+  /* Clean page setup */
+  @page {
+    margin: 1cm 1.5cm;
+    size: A4;
+  }
+
+  /* Prevent tables from breaking mid-row */
+  tr {
+    page-break-inside: avoid;
+  }
+  thead {
+    display: table-header-group;
+  }
+
+  /* Preserve subtle backgrounds */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Report content full width */
+  #report-content {
+    max-width: 100% !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
   }
 }

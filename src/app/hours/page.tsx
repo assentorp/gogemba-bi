@@ -78,13 +78,13 @@ export default function HoursPage() {
     >
       <span className="inline-flex items-center gap-1">
         {label}
-        <Icon src={arrowUpDown} className={`size-3 ${sortKey === field ? 'text-indigo-600 dark:text-indigo-400' : 'text-stone-300 dark:text-stone-600'}`} />
+        <Icon src={arrowUpDown} className={`size-3 ${sortKey === field ? 'text-stone-900 dark:text-stone-100' : 'text-stone-300 dark:text-stone-600'}`} />
       </span>
     </th>
   );
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#0a0a0a]">
+    <div className="bg-white dark:bg-[#0a0a0a]">
       <FilterBar />
 
       <div className="p-6 space-y-4">

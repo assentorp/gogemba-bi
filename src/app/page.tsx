@@ -4,14 +4,12 @@ import { useMemo } from 'react';
 import { useData } from '@/lib/data-context';
 import { useFilters } from '@/lib/filter-context';
 import { FilterBar } from '@/components/filter-bar';
-import { SettingsBar } from '@/components/dashboard/settings-bar';
 import { KPIBanner } from '@/components/dashboard/kpi-card';
 import { MonthlyTurnoverChart, CumulativeChart } from '@/components/dashboard/monthly-chart';
 import { BusinessAreaCard } from '@/components/dashboard/business-area-card';
 import { BillingGauge } from '@/components/dashboard/billing-gauge';
 import { StatsTable } from '@/components/dashboard/stats-table';
 import { Icon } from '@/components/Icon';
-import folderKanban from 'lucide-static/icons/folder-kanban.svg';
 import {
   computeKPIs,
   getMonthlyTurnoverData,
@@ -21,8 +19,9 @@ import {
   sumDKK,
   sumHours,
   avgRate,
+  getFTECount,
 } from '@/lib/calculations';
-import { formatDKK, getMonthLabelFull } from '@/lib/date-utils';
+import { formatDKK, getMonthLabelFull, getWorkingDaysInMonth, getWorkingDaysYTD } from '@/lib/date-utils';
 
 export default function DashboardPage() {
   const { data, loading, error } = useData();
@@ -98,30 +97,28 @@ export default function DashboardPage() {
   const monthLabel = getMonthLabelFull(selectedMonth);
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#0a0a0a]">
+    <div className="bg-white dark:bg-[#0a0a0a]">
       <FilterBar />
 
       <div className="p-6 space-y-5">
-        {!isAllTime && <SettingsBar resources={data.resources} />}
-
         {isAllTime && allTimeStats ? (
-          <div className="bg-stone-900 dark:bg-[#161618] rounded-xl border border-stone-800 dark:border-white/[0.10] text-white overflow-hidden">
+          <div className="bg-white dark:bg-[#161618] rounded-xl border border-stone-200 dark:border-white/[0.10] overflow-hidden">
             <div className="px-5 pt-4 pb-2">
-              <p className="text-xs font-medium text-white/90 uppercase tracking-wider">{filters.dateFrom ? filters.dateFrom.slice(0, 4) : 'All Time'}</p>
-              <p className="text-3xl font-semibold tracking-tight mt-1">{formatDKK(allTimeStats.totalRevenue)} kr.</p>
+              <p className="text-sm font-medium text-stone-900 dark:text-stone-100">{filters.dateFrom ? filters.dateFrom.slice(0, 4) : 'All Time'}</p>
+              <p className="text-3xl font-semibold tracking-tight mt-1 text-stone-900 dark:text-stone-100">{formatDKK(allTimeStats.totalRevenue)} kr.</p>
             </div>
-            <div className="flex divide-x divide-white/30 bg-black/10 px-5 py-2.5">
+            <div className="flex divide-x divide-stone-200 dark:divide-white/[0.10] bg-stone-50 dark:bg-white/[0.03] px-5 py-2.5">
               <div className="flex-1">
-                <p className="text-[10px] text-white/80 uppercase tracking-wider">Hours</p>
-                <p className="text-sm font-semibold">{allTimeStats.totalHours.toLocaleString('da-DK', { maximumFractionDigits: 1 })}</p>
+                <p className="text-[11px] text-stone-500 dark:text-stone-400">Hours</p>
+                <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">{allTimeStats.totalHours.toLocaleString('da-DK', { maximumFractionDigits: 1 })}</p>
               </div>
               <div className="flex-1 pl-4">
-                <p className="text-[10px] text-white/80 uppercase tracking-wider">Avg Rate</p>
-                <p className="text-sm font-semibold">{formatDKK(Math.round(allTimeStats.rate))} kr.</p>
+                <p className="text-[11px] text-stone-500 dark:text-stone-400">Avg Rate</p>
+                <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">{formatDKK(Math.round(allTimeStats.rate))} kr.</p>
               </div>
               <div className="flex-1 pl-4">
-                <p className="text-[10px] text-white/80 uppercase tracking-wider">Projects</p>
-                <p className="text-sm font-semibold">{allTimeStats.projects}</p>
+                <p className="text-[11px] text-stone-500 dark:text-stone-400">Projects</p>
+                <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">{allTimeStats.projects}</p>
               </div>
             </div>
           </div>
@@ -130,7 +127,6 @@ export default function DashboardPage() {
             <KPIBanner
               title={`${monthLabel} ${selectedYear} (MTD)`}
               value={`${formatDKK(kpi.turnoverMTD)} kr.`}
-              variant="gold"
               items={[
                 { label: 'Budget', value: `${formatDKK(kpi.budgetMTD)} kr.` },
                 { label: 'FTE Budget', value: `${kpi.fteCount * 136.28 > 0 ? formatDKK(Math.round(kpi.fteCount * 136.28)) : '—'}` },
@@ -140,10 +136,9 @@ export default function DashboardPage() {
             <KPIBanner
               title="YTD"
               value={`${formatDKK(kpi.turnoverYTD)} kr.`}
-              variant="dark"
+              badge={{ label: `${Math.round(kpi.indexYTD)}%`, positive: kpi.indexYTD >= 100 }}
               items={[
                 { label: 'Budget YTD', value: `${formatDKK(kpi.budgetYTD)} kr.` },
-                { label: 'Index', value: `${Math.round(kpi.indexYTD)}%` },
                 { label: 'Delta', value: `${kpi.deltaYTD >= 0 ? '+' : ''}${formatDKK(kpi.deltaYTD)} kr.` },
               ]}
             />
@@ -166,10 +161,24 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {!isAllTime && kpi && <BillingGauge actual={kpi.billingRatio} target={85} />}
 
-          <div className="bg-white dark:bg-[#161618] rounded-xl border border-stone-200 dark:border-white/[0.10] p-4 flex flex-col items-center justify-center">
-            <Icon src={folderKanban} className="size-7 text-indigo-600 dark:text-indigo-400 mb-2" />
-            <p className="text-3xl font-semibold text-stone-900 dark:text-stone-100">{ytdActiveProjects}</p>
-            <p className="text-xs text-stone-500 dark:text-stone-400 uppercase tracking-wider mt-1">Active Projects</p>
+          <div className="bg-white dark:bg-[#161618] rounded-xl border border-stone-200 dark:border-white/[0.10] p-4">
+            <h4 className="text-sm font-medium text-stone-900 dark:text-stone-100 mb-3">Overview</h4>
+            <div className="space-y-2">
+              {[
+                ...((!isAllTime && data) ? [
+                  { label: `Days in ${getMonthLabelFull(selectedMonth)} ${selectedYear}`, value: `${new Date(selectedYear, selectedMonth, 0).getDate()} days, ${getWorkingDaysInMonth(selectedYear, selectedMonth)} workdays` },
+                  { label: 'Working days YTD', value: String(getWorkingDaysYTD(selectedYear, selectedMonth)) },
+                  { label: 'Target Load', value: '85%' },
+                  { label: 'FTE', value: String(getFTECount(data.resources)) },
+                ] : []),
+                { label: 'Active Projects', value: String(ytdActiveProjects) },
+              ].map((row, i) => (
+                <div key={i} className="flex items-center justify-between py-1.5 border-b border-stone-100 dark:border-white/[0.06] last:border-0">
+                  <span className="text-sm text-stone-600 dark:text-stone-400">{row.label}</span>
+                  <span className="text-sm font-semibold text-stone-900 dark:text-stone-100">{row.value}</span>
+                </div>
+              ))}
+            </div>
           </div>
 
           {!isAllTime && kpi && <StatsTable kpi={kpi} />}
