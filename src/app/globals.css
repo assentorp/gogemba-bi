@@ -1,0 +1,75 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --color-background: #f8f6f3;
+  --color-foreground: #1a1612;
+  --color-accent: #6366f1;
+  --color-accent-light: #c7d2fe;
+  --color-positive: #22c55e;
+  --color-negative: #ef4444;
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains);
+}
+
+html {
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+body {
+  background: #ffffff;
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+html.dark body {
+  background: #000000;
+}
+
+:root {
+  --logo-color: #44403c;
+}
+html.dark {
+  --logo-color: #a8a29e;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+html.dark ::-webkit-scrollbar-thumb {
+  background: #404040;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #525252;
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  .print-break {
+    page-break-before: always;
+  }
+  body {
+    background: white;
+    color: black;
+  }
+}
