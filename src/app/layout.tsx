@@ -20,6 +20,14 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: 'Kyodo Business Intelligence',
   description: 'Kyodo Lab - Business Intelligence Dashboard',
+  robots: {
+    index: false,
+    follow: false,
+    noarchive: true,
+    nosnippet: true,
+    noimageindex: true,
+    nocache: true,
+  },
 };
 
 export default function RootLayout({
