@@ -2,9 +2,11 @@
 
 import { useTheme } from '@/context/ThemeContext';
 import { Icon } from '@/components/Icon';
+import { logout } from './actions';
 import sun from 'lucide-static/icons/sun.svg';
 import moon from 'lucide-static/icons/moon.svg';
 import monitor from 'lucide-static/icons/monitor.svg';
+import logOut from 'lucide-static/icons/log-out.svg';
 
 type Theme = 'light' | 'dark' | 'system';
 
@@ -69,6 +71,31 @@ export default function SettingsPage() {
                   );
                 })}
               </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-10">
+          <h2 className="text-sm font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wider mb-4">
+            Session
+          </h2>
+          <div className="bg-white dark:bg-[#161618] rounded-2xl border border-neutral-200/60 dark:border-white/[0.10] shadow-[0_1px_3px_rgba(0,0,0,0.04)] dark:shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.06)]">
+            <div className="px-5 py-4 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100 mb-1">Sign out</p>
+                <p className="text-sm text-neutral-500 dark:text-neutral-400">
+                  End your current session
+                </p>
+              </div>
+              <form action={logout}>
+                <button
+                  type="submit"
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-neutral-200 dark:border-white/[0.10] text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-white/[0.03] hover:border-neutral-300 dark:hover:border-white/[0.15] transition-all duration-150"
+                >
+                  <Icon src={logOut} className="size-4" />
+                  Sign out
+                </button>
+              </form>
             </div>
           </div>
         </section>
