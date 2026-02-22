@@ -22,3 +22,6 @@ npm-debug.log*
 
 # data files
 *.pdf
+
+# generated data
+public/data/

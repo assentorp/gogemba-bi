@@ -1,10 +1,5 @@
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {
-  serverExternalPackages: ['xlsx'],
-  outputFileTracingIncludes: {
-    '/api/data': ['./data/**/*'],
-  },
-};
+const nextConfig: NextConfig = {};
 
 export default nextConfig;
