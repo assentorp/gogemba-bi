@@ -21,6 +21,4 @@ npm-debug.log*
 *.tsbuildinfo
 
 # data files
-data/
-*.xlsx
 *.pdf
