@@ -61,9 +61,20 @@ export function FilterProvider({ children }: { children: ReactNode }) {
 
   const filteredEntries = useMemo(() => {
     if (!data) return [];
+
+    let dateFrom = filters.dateFrom || undefined;
+    let dateTo = filters.dateTo || undefined;
+
+    // When a specific month is selected, derive date range from it
+    if (!filters.isAllTime && filters.selectedMonth && !dateFrom && !dateTo) {
+      const [y, m] = filters.selectedMonth.split('-');
+      dateFrom = `${y}-${m}-01`;
+      dateTo = `${y}-${m}-31`;
+    }
+
     return filterEntries(data.entries, {
-      dateFrom: filters.dateFrom || undefined,
-      dateTo: filters.dateTo || undefined,
+      dateFrom,
+      dateTo,
       clients: filters.clients.length ? filters.clients : undefined,
       projects: filters.projects.length ? filters.projects : undefined,
       resources: filters.resources.length ? filters.resources : undefined,

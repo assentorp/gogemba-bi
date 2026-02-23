@@ -21,7 +21,7 @@ import {
   avgRate,
   getFTECount,
 } from '@/lib/calculations';
-import { formatDKK, getMonthLabelFull, getWorkingDaysInMonth, getWorkingDaysYTD } from '@/lib/date-utils';
+import { formatDKK, formatRate, getMonthLabelFull, getWorkingDaysInMonth, getWorkingDaysYTD } from '@/lib/date-utils';
 
 export default function DashboardPage() {
   const { data, loading, error } = useData();
@@ -114,7 +114,7 @@ export default function DashboardPage() {
               </div>
               <div className="flex-1 pl-4">
                 <p className="text-[11px] text-stone-500 dark:text-stone-400">Avg Rate</p>
-                <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">{formatDKK(Math.round(allTimeStats.rate))} kr.</p>
+                <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">{formatRate(allTimeStats.rate)} kr.</p>
               </div>
               <div className="flex-1 pl-4">
                 <p className="text-[11px] text-stone-500 dark:text-stone-400">Projects</p>

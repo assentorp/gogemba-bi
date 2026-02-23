@@ -1,6 +1,6 @@
 'use client';
 
-import { formatDKK, formatHours } from '@/lib/date-utils';
+import { formatDKK, formatHours, formatRate } from '@/lib/date-utils';
 import type { KPIData } from '@/lib/types';
 
 interface StatsTableProps {
@@ -10,7 +10,7 @@ interface StatsTableProps {
 export function StatsTable({ kpi }: StatsTableProps) {
   const rows = [
     { label: 'Billed hours', value: `${formatHours(kpi.billedHours)} hrs` },
-    { label: 'Average hourly rate', value: `${formatDKK(Math.round(kpi.avgHourlyRate))} kr.` },
+    { label: 'Average hourly rate', value: `${formatRate(kpi.avgHourlyRate)} kr.` },
     { label: 'Turnover / day', value: `${formatDKK(Math.round(kpi.turnoverPerDay))} kr.` },
     { label: 'Turnover / FTE', value: `${formatDKK(Math.round(kpi.turnoverPerFTE))} kr.` },
     { label: 'Turnover / FTE / day', value: `${formatDKK(Math.round(kpi.turnoverPerFTEPerDay))} kr.` },

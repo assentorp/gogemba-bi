@@ -20,7 +20,7 @@ import { FilterBar } from '@/components/filter-bar';
 import { Icon } from '@/components/Icon';
 import chevronDown from 'lucide-static/icons/chevron-down.svg';
 import chevronUp from 'lucide-static/icons/chevron-up.svg';
-import { formatDKK, formatHours, getMonthLabel } from '@/lib/date-utils';
+import { formatDKK, formatHours, formatRate, getMonthLabel } from '@/lib/date-utils';
 import { sumDKK, sumHours, getEntriesYTD } from '@/lib/calculations';
 import type { TimesheetEntry } from '@/lib/types';
 
@@ -210,7 +210,7 @@ export default function ProjectsPage() {
                             <span className="text-stone-600 dark:text-stone-400">{p.project}</span>
                             <span className="text-right w-20 text-stone-700 dark:text-stone-300">{formatHours(p.hours)}</span>
                             <span className="text-right font-medium w-28 text-stone-900 dark:text-stone-100">{formatDKK(p.revenue)} kr.</span>
-                            <span className="text-right text-stone-500 dark:text-stone-400 w-20">{formatDKK(Math.round(p.rate))}</span>
+                            <span className="text-right text-stone-500 dark:text-stone-400 w-20">{formatRate(p.rate)}</span>
                             <span className="w-6 flex justify-center text-stone-400">
                               <Icon src={isExpanded ? chevronUp : chevronDown} className="size-3.5" />
                             </span>

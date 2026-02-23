@@ -6,7 +6,7 @@ import { useFilters } from '@/lib/filter-context';
 import { FilterBar } from '@/components/filter-bar';
 import { Icon } from '@/components/Icon';
 import printer from 'lucide-static/icons/printer.svg';
-import { formatDKK, formatHours, getMonthLabelFull, getMonthLabel, getWeekLabel } from '@/lib/date-utils';
+import { formatDKK, formatHours, formatRate, getMonthLabelFull, getMonthLabel, getWeekLabel } from '@/lib/date-utils';
 import { sumDKK, sumHours, avgRate, getEntriesForMonth, activeProjectCount } from '@/lib/calculations';
 
 export default function ReportsPage() {
@@ -162,7 +162,7 @@ export default function ReportsPage() {
             {[
               { label: 'Total Revenue', value: `${formatDKK(totalRevenue)} kr.` },
               { label: 'Total Hours', value: formatHours(totalHours) },
-              { label: 'Avg Rate', value: `${formatDKK(Math.round(rate))} kr.` },
+              { label: 'Avg Rate', value: `${formatRate(rate)} kr.` },
               { label: 'Active Projects', value: String(projects) },
             ].map((card, i) => (
               <div key={i} className="bg-stone-50 dark:bg-white/[0.03] rounded-lg p-3">
@@ -193,7 +193,7 @@ export default function ReportsPage() {
                     <td className={tdClass}>{row.label}</td>
                     <td className={`${tdClass} text-right`}>{formatHours(row.hours)}</td>
                     <td className={`${tdClass} text-right font-medium text-stone-900 dark:text-stone-100`}>{formatDKK(row.revenue)} kr.</td>
-                    <td className={`${tdClass} text-right`}>{row.hours > 0 ? `${formatDKK(Math.round(row.revenue / row.hours))} kr.` : '—'}</td>
+                    <td className={`${tdClass} text-right`}>{row.hours > 0 ? `${formatRate(row.revenue / row.hours)} kr.` : '—'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -202,7 +202,7 @@ export default function ReportsPage() {
                   <td className="px-4 py-2 text-stone-900 dark:text-stone-100">Total</td>
                   <td className="px-4 py-2 text-right text-stone-900 dark:text-stone-100">{formatHours(totalHours)}</td>
                   <td className="px-4 py-2 text-right text-stone-900 dark:text-stone-100">{formatDKK(totalRevenue)} kr.</td>
-                  <td className="px-4 py-2 text-right text-stone-500 dark:text-stone-400">{totalHours > 0 ? `${formatDKK(Math.round(rate))} kr.` : '—'}</td>
+                  <td className="px-4 py-2 text-right text-stone-500 dark:text-stone-400">{totalHours > 0 ? `${formatRate(rate)} kr.` : '—'}</td>
                 </tr>
               </tfoot>
             </table>

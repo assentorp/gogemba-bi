@@ -7,7 +7,7 @@ import { FilterBar } from '@/components/filter-bar';
 import { Icon } from '@/components/Icon';
 import download from 'lucide-static/icons/download.svg';
 import arrowUpDown from 'lucide-static/icons/arrow-up-down.svg';
-import { formatDKK, formatHours } from '@/lib/date-utils';
+import { formatDKK, formatHours, formatRate } from '@/lib/date-utils';
 
 type SortKey = 'date' | 'client' | 'project' | 'resource' | 'hours' | 'totalDKK' | 'rate';
 
@@ -135,7 +135,7 @@ export default function HoursPage() {
                     <td className="px-4 py-2.5 text-stone-600 dark:text-stone-400">{e.resource}</td>
                     <td className="px-4 py-2.5 text-stone-500 dark:text-stone-400 max-w-[200px] truncate" title={e.description}>{e.description}</td>
                     <td className="px-4 py-2.5 text-right text-stone-700 dark:text-stone-300">{e.hours}</td>
-                    <td className="px-4 py-2.5 text-right text-stone-500 dark:text-stone-400">{formatDKK(e.rate)}</td>
+                    <td className="px-4 py-2.5 text-right text-stone-500 dark:text-stone-400">{formatRate(e.rate)}</td>
                     <td className="px-4 py-2.5 text-right font-medium text-stone-900 dark:text-stone-100">{formatDKK(e.totalDKK)}</td>
                   </tr>
                 ))}
@@ -145,7 +145,7 @@ export default function HoursPage() {
                   <td className="px-4 py-2.5 text-stone-900 dark:text-stone-100" colSpan={6}>Total ({sorted.length} entries)</td>
                   <td className="px-4 py-2.5 text-right text-stone-900 dark:text-stone-100">{formatHours(totalHours)}</td>
                   <td className="px-4 py-2.5 text-right text-stone-500 dark:text-stone-400">
-                    {totalHours > 0 ? formatDKK(Math.round(totalDKK / totalHours)) : '—'}
+                    {totalHours > 0 ? formatRate(totalDKK / totalHours) : '—'}
                   </td>
                   <td className="px-4 py-2.5 text-right text-stone-900 dark:text-stone-100">{formatDKK(totalDKK)}</td>
                 </tr>

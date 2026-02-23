@@ -110,6 +110,17 @@ export function formatDKKShort(amount: number): string {
   return formatDKK(amount);
 }
 
+export function formatRate(rate: number): string {
+  if (rate === 0) return '0';
+  // Use no thousands separator to avoid da-DK period confusion (1.200 looks like 1.2)
+  const rounded = Math.round(rate * 100) / 100;
+  const hasDecimals = rounded % 1 !== 0;
+  if (hasDecimals) {
+    return rounded.toFixed(2).replace('.', ',');
+  }
+  return String(Math.round(rate));
+}
+
 export function formatHours(hours: number): string {
   return new Intl.NumberFormat('da-DK', {
     minimumFractionDigits: 1,
