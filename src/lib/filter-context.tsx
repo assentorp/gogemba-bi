@@ -18,11 +18,16 @@ interface FilterContextValue {
   isAllTime: boolean;
 }
 
-// Default: show latest month in the data
+// Default: show current month
+function getCurrentMonth(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
+
 const defaultFilters: FilterState = {
   dateFrom: '',
   dateTo: '',
-  selectedMonth: '2025-12', // Latest month with data
+  selectedMonth: getCurrentMonth(),
   isAllTime: false,
   clients: [],
   projects: [],
@@ -37,8 +42,8 @@ const FilterContext = createContext<FilterContextValue>({
   uniqueClients: [],
   uniqueProjects: [],
   uniqueResources: [],
-  selectedYear: 2025,
-  selectedMonth: 12,
+  selectedYear: new Date().getFullYear(),
+  selectedMonth: new Date().getMonth() + 1,
   isAllTime: false,
 });
 
