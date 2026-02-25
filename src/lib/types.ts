@@ -44,6 +44,40 @@ export interface ParsedData {
   grandTotalHours: number;
   grandTotalDKK: number;
   avgRate: number;
+  budgetEntries?: BudgetEntry[];
+  budgetMeta?: BudgetMeta;
+}
+
+export interface BudgetEntry {
+  year: number;
+  month: number; // 1-12
+  sbu: string;
+  resource: string;
+  budgetHours: number;
+  avgRate: number;
+  budgetDKK: number;
+}
+
+export interface BudgetResourceDef {
+  name: string;
+  initials: string;
+  avgRate: number;
+  utilizationTarget: number; // e.g. 0.85
+}
+
+export interface BudgetSpecialDate {
+  date: string; // ISO date
+  description: string;
+  impact: string; // "None", "Half day off", "Office closed"
+}
+
+export interface BudgetMeta {
+  hoursPerDay: number;
+  workingDaysPerMonth: Record<number, number>; // month (1-12) -> working days
+  resources: BudgetResourceDef[];
+  specialDates: BudgetSpecialDate[];
+  yearTotalBudget: number;
+  yearTotalWorkingDays: number;
 }
 
 export interface MonthlyBudget {

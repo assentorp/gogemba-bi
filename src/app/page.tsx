@@ -21,6 +21,7 @@ import {
   avgRate,
   getFTECount,
 } from '@/lib/calculations';
+import { getBudgetForPeriod } from '@/lib/budget-data';
 import { formatDKK, formatRate, getMonthLabelFull, getWorkingDaysInMonth, getWorkingDaysYTD } from '@/lib/date-utils';
 
 export default function DashboardPage() {
@@ -39,32 +40,57 @@ export default function DashboardPage() {
     const totalHours = sumHours(filteredEntries);
     const rate = avgRate(filteredEntries);
     const projects = activeProjectCount(filteredEntries);
-    return { totalRevenue, totalHours, rate, projects };
-  }, [filteredEntries, isAllTime]);
+
+    // If viewing a single year, compute the annual budget
+    let yearBudget = 0;
+    const yearMatch = filters.dateFrom?.match(/^(\d{4})-01-01$/);
+    if (yearMatch) {
+      const y = parseInt(yearMatch[1]);
+      const budgets = getBudgetForPeriod(y, 1, y, 12);
+      yearBudget = budgets.reduce((sum, b) => sum + b.total, 0);
+    }
+
+    return { totalRevenue, totalHours, rate, projects, yearBudget };
+  }, [filteredEntries, isAllTime, filters.dateFrom]);
+
+  // Detect single-year view (has budget data)
+  const isSingleYear = isAllTime && !!filters.dateFrom?.match(/^\d{4}-01-01$/);
 
   const chartData = useMemo(() => {
     if (!data) return [];
     if (isAllTime) {
-      // Build chart data across all years/months
-      const monthMap = new Map<string, { label: string; turnover: number; sortKey: string }>();
+      const monthLabels = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const monthMap = new Map<string, { label: string; turnover: number; budget: number; sortKey: string }>();
+
+      // For single-year view, pre-populate all 12 months so budget shows for future months too
+      if (isSingleYear) {
+        const y = parseInt(filters.dateFrom!.slice(0, 4));
+        for (let m = 1; m <= 12; m++) {
+          const key = `${y}-${String(m).padStart(2, '0')}`;
+          const monthBudget = getBudgetForPeriod(y, m, y, m)[0]?.total || 0;
+          monthMap.set(key, { label: `${monthLabels[m]} ${String(y).slice(2)}`, turnover: 0, budget: monthBudget, sortKey: key });
+        }
+      }
+
       for (const e of filteredEntries) {
         const [y, m] = e.date.split('-');
         const key = `${y}-${m}`;
         if (!monthMap.has(key)) {
-          const monthLabels = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-          monthMap.set(key, { label: `${monthLabels[parseInt(m)]} ${y.slice(2)}`, turnover: 0, sortKey: key });
+          monthMap.set(key, { label: `${monthLabels[parseInt(m)]} ${y.slice(2)}`, turnover: 0, budget: 0, sortKey: key });
         }
         monthMap.get(key)!.turnover += e.totalDKK;
       }
       const sorted = [...monthMap.values()].sort((a, b) => a.sortKey.localeCompare(b.sortKey));
       let cumTurnover = 0;
+      let cumBudget = 0;
       return sorted.map(s => {
         cumTurnover += s.turnover;
-        return { month: 0, label: s.label, turnover: s.turnover, budget: 0, cumTurnover, cumBudget: 0 };
+        cumBudget += s.budget;
+        return { month: 0, label: s.label, turnover: s.turnover, budget: s.budget, cumTurnover, cumBudget };
       });
     }
     return getMonthlyTurnoverData(filteredEntries, selectedYear);
-  }, [data, filteredEntries, selectedYear, isAllTime]);
+  }, [data, filteredEntries, selectedYear, isAllTime, isSingleYear, filters.dateFrom]);
 
   const businessAreas = useMemo(() => {
     if (!data) return null;
@@ -103,12 +129,36 @@ export default function DashboardPage() {
       <div className="p-6 space-y-5">
         {isAllTime && allTimeStats ? (
           <div className="bg-white dark:bg-[#161618] rounded-xl border border-stone-200 dark:border-white/[0.10] overflow-hidden">
-            <div className="px-5 pt-4 pb-2">
-              <p className="text-sm font-medium text-stone-900 dark:text-stone-100">{filters.dateFrom ? filters.dateFrom.slice(0, 4) : 'All Time'}</p>
-              <p className="text-3xl font-semibold tracking-tight mt-1 text-stone-900 dark:text-stone-100">{formatDKK(allTimeStats.totalRevenue)} kr.</p>
+            <div className="px-5 pt-4 pb-2 flex items-start justify-between">
+              <div>
+                <p className="text-sm font-medium text-stone-900 dark:text-stone-100">{filters.dateFrom ? filters.dateFrom.slice(0, 4) : 'All Time'}</p>
+                <p className="text-3xl font-semibold tracking-tight mt-1 text-stone-900 dark:text-stone-100">{formatDKK(allTimeStats.totalRevenue)} kr.</p>
+              </div>
+              {allTimeStats.yearBudget > 0 && (() => {
+                const index = Math.round((allTimeStats.totalRevenue / allTimeStats.yearBudget) * 100);
+                return (
+                  <span className={`mt-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${index >= 100 ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-400'}`}>
+                    {index}%
+                  </span>
+                );
+              })()}
             </div>
             <div className="flex divide-x divide-stone-200 dark:divide-white/[0.10] bg-stone-50 dark:bg-white/[0.03] px-5 py-2.5">
-              <div className="flex-1">
+              {allTimeStats.yearBudget > 0 && (
+                <>
+                  <div className="flex-1">
+                    <p className="text-[11px] text-stone-500 dark:text-stone-400">Budget</p>
+                    <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">{formatDKK(allTimeStats.yearBudget)} kr.</p>
+                  </div>
+                  <div className="flex-1 pl-4">
+                    <p className="text-[11px] text-stone-500 dark:text-stone-400">Delta</p>
+                    <p className={`text-sm font-semibold ${allTimeStats.totalRevenue - allTimeStats.yearBudget >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                      {allTimeStats.totalRevenue - allTimeStats.yearBudget >= 0 ? '+' : ''}{formatDKK(allTimeStats.totalRevenue - allTimeStats.yearBudget)} kr.
+                    </p>
+                  </div>
+                </>
+              )}
+              <div className="flex-1 pl-4">
                 <p className="text-[11px] text-stone-500 dark:text-stone-400">Hours</p>
                 <p className="text-sm font-semibold text-stone-900 dark:text-stone-100">{allTimeStats.totalHours.toLocaleString('da-DK', { maximumFractionDigits: 1 })}</p>
               </div>
@@ -146,8 +196,8 @@ export default function DashboardPage() {
         ) : null}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <MonthlyTurnoverChart data={chartData} hideBudget={isAllTime} />
-          <CumulativeChart data={chartData} hideBudget={isAllTime} />
+          <MonthlyTurnoverChart data={chartData} hideBudget={isAllTime && !isSingleYear} />
+          <CumulativeChart data={chartData} hideBudget={isAllTime && !isSingleYear} />
         </div>
 
         {businessAreas && (

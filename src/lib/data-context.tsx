@@ -1,7 +1,8 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import type { ParsedData, TimesheetEntry, ResourceMeta, ProjectMeta } from './types';
+import type { ParsedData } from './types';
+import { initBudgetData } from './budget-data';
 
 interface DataContextValue {
   data: ParsedData | null;
@@ -26,7 +27,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
       })
-      .then(setData)
+      .then((d: ParsedData) => {
+        if (d.budgetEntries) {
+          initBudgetData(d.budgetEntries, d.budgetMeta);
+        }
+        setData(d);
+      })
       .catch(err => setError(err.message))
       .finally(() => setLoading(false));
   }, []);
