@@ -101,4 +101,14 @@ html.dark ::-webkit-scrollbar-thumb:hover {
     padding-left: 0 !important;
     padding-right: 0 !important;
   }
+
+  /* Project Economy report: page break before overview section */
+  .print-page-break {
+    page-break-before: always;
+  }
+
+  /* Prevent chart cards from splitting across pages */
+  .print-break-inside-avoid {
+    break-inside: avoid;
+  }
 }

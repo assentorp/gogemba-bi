@@ -101,6 +101,37 @@ export interface FilterState {
 
 export type BusinessArea = 'Consultancy' | 'Projects & Services' | 'Products';
 
+// ── Project Economy (task-level budget from EazyProject) ─────────
+
+export interface TaskBudget {
+  taskId: number;
+  taskName: string;
+  projectId: number;
+  projectTitle: string;
+  startDate: string; // ISO date
+  endDate: string; // ISO date
+  budgetHours: number;
+  budgetAmount: number;
+  isOngoing: boolean;
+  status: string;
+}
+
+export interface WeeklyBudget {
+  year: number;
+  week: number;
+  budgetHours: number;
+  budgetAmount: number;
+}
+
+export interface ProjectBudgetSummary {
+  projectId: number;
+  projectTitle: string;
+  totalBudgetHours: number;
+  totalBudgetAmount: number;
+  weeklyBudgets: WeeklyBudget[];
+  tasks: TaskBudget[];
+}
+
 export interface KPIData {
   turnoverMTD: number;
   turnoverYTD: number;

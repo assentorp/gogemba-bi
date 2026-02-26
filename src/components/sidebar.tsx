@@ -87,9 +87,10 @@ export function Sidebar({ isCollapsed, onToggleCollapse, isMobile, mobileMenuOpe
         ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         <div className="flex items-center justify-between px-4 h-14 border-b border-stone-200 dark:border-white/[0.06]">
-          <span className="text-sm font-semibold text-stone-800 dark:text-stone-200">
-            kyodo <span className="text-stone-500 dark:text-stone-400">lab</span>
-          </span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/kyodo-logo-black.svg" alt="Kyodo Lab" className="h-4 dark:hidden" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/kyodo-logo-white.svg" alt="Kyodo Lab" className="h-4 hidden dark:block" />
           <button
             onClick={onMobileClose}
             className="p-1.5 rounded-md text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-neutral-100 dark:hover:bg-white/[0.06] transition-colors"
@@ -161,8 +162,11 @@ export function Sidebar({ isCollapsed, onToggleCollapse, isMobile, mobileMenuOpe
       flex flex-col
     ">
       <div className="flex items-center justify-between px-4 h-14 border-b border-stone-200 dark:border-white/[0.06]">
-        <Link href="/" className="text-sm font-semibold text-stone-800 dark:text-stone-200">
-          kyodo <span className="text-stone-500 dark:text-stone-400">lab</span>
+        <Link href="/" className="flex items-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/kyodo-logo-black.svg" alt="Kyodo Lab" className="h-4 dark:hidden" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/kyodo-logo-white.svg" alt="Kyodo Lab" className="h-4 hidden dark:block" />
         </Link>
         <button
           onClick={onToggleCollapse}

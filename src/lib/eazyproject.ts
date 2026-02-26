@@ -1,5 +1,5 @@
-import { getISOWeek } from 'date-fns';
-import type { TimesheetEntry } from './types';
+import { getISOWeek, eachWeekOfInterval, getISOWeekYear } from 'date-fns';
+import type { TimesheetEntry, ProjectBudgetSummary, TaskBudget, WeeklyBudget } from './types';
 
 // ── EazyProject REST API types (from /api/metadata) ───────────────
 
@@ -147,6 +147,122 @@ async function fetchTimeRegistrations(fromDate: string): Promise<Timeregistratio
   const regs = resp.Timeregistrations ?? [];
   setCache(key, regs);
   return regs;
+}
+
+// ── Tasks API (for project budgets) ────────────────────────────────
+
+interface TaskDto {
+  Id?: number;
+  TaskName?: string;
+  StartDate?: string;
+  EndDate?: string;
+  BudgetHours?: number;
+  BudgetAmount?: number;
+  IsOngoing?: boolean;
+  Project?: ReferenceDto;
+  TaskStatus?: ReferenceDto;
+}
+
+interface TasksResponse {
+  Tasks?: TaskDto[];
+}
+
+async function fetchTasks(): Promise<TaskDto[]> {
+  const key = 'tasks';
+  const cached = getCached<TaskDto[]>(key);
+  if (cached) return cached;
+
+  const resp = await apiFetch<TasksResponse>('/tasks');
+  const tasks = resp.Tasks ?? [];
+  setCache(key, tasks);
+  return tasks;
+}
+
+export async function getProjectBudgetSummaries(): Promise<ProjectBudgetSummary[]> {
+  const [tasks, projectsMap] = await Promise.all([
+    fetchTasks(),
+    fetchProjects(),
+  ]);
+
+  // Group tasks by project
+  const projectTasksMap = new Map<number, TaskDto[]>();
+  for (const task of tasks) {
+    const pid = task.Project?.Id;
+    if (pid == null) continue;
+    if (!projectTasksMap.has(pid)) projectTasksMap.set(pid, []);
+    projectTasksMap.get(pid)!.push(task);
+  }
+
+  const summaries: ProjectBudgetSummary[] = [];
+
+  for (const [projectId, projectTasks] of projectTasksMap) {
+    const project = projectsMap.get(projectId);
+    const projectTitle = project?.Projektname ?? project?.ProjectNumber ?? `Project ${projectId}`;
+
+    let totalBudgetHours = 0;
+    let totalBudgetAmount = 0;
+    const taskBudgets: TaskBudget[] = [];
+    const weeklyMap = new Map<string, WeeklyBudget>(); // "year-week" -> budget
+
+    for (const task of projectTasks) {
+      const budgetHours = task.BudgetHours ?? 0;
+      const budgetAmount = task.BudgetAmount ?? 0;
+      totalBudgetHours += budgetHours;
+      totalBudgetAmount += budgetAmount;
+
+      const startStr = task.StartDate?.slice(0, 10) ?? '';
+      const endStr = task.EndDate?.slice(0, 10) ?? '';
+
+      taskBudgets.push({
+        taskId: task.Id ?? 0,
+        taskName: task.TaskName ?? 'Unnamed',
+        projectId,
+        projectTitle,
+        startDate: startStr,
+        endDate: endStr,
+        budgetHours,
+        budgetAmount,
+        isOngoing: task.IsOngoing ?? false,
+        status: task.TaskStatus?.Title ?? 'Unknown',
+      });
+
+      // Distribute budget evenly across weeks in the task date range
+      if (startStr && endStr && (budgetHours > 0 || budgetAmount > 0)) {
+        const start = new Date(startStr);
+        const end = new Date(endStr);
+        if (!isNaN(start.getTime()) && !isNaN(end.getTime()) && end >= start) {
+          const weeks = eachWeekOfInterval({ start, end }, { weekStartsOn: 1 });
+          const weekCount = weeks.length || 1;
+          const hoursPerWeek = budgetHours / weekCount;
+          const amountPerWeek = budgetAmount / weekCount;
+
+          for (const weekStart of weeks) {
+            const w = getISOWeek(weekStart);
+            const y = getISOWeekYear(weekStart);
+            const key = `${y}-${w}`;
+            const existing = weeklyMap.get(key);
+            if (existing) {
+              existing.budgetHours += hoursPerWeek;
+              existing.budgetAmount += amountPerWeek;
+            } else {
+              weeklyMap.set(key, { year: y, week: w, budgetHours: hoursPerWeek, budgetAmount: amountPerWeek });
+            }
+          }
+        }
+      }
+    }
+
+    summaries.push({
+      projectId,
+      projectTitle,
+      totalBudgetHours,
+      totalBudgetAmount,
+      weeklyBudgets: [...weeklyMap.values()].sort((a, b) => a.year - b.year || a.week - b.week),
+      tasks: taskBudgets,
+    });
+  }
+
+  return summaries;
 }
 
 // ── Mapper ─────────────────────────────────────────────────────────

@@ -52,9 +52,10 @@ export function AppLayout({ children }: AppLayoutProps) {
             </svg>
           </button>
           <div className="ml-3 flex items-center gap-2">
-            <span className="text-xs font-semibold text-stone-800 dark:text-stone-200">
-              kyodo <span className="text-stone-500 dark:text-stone-400">lab</span>
-            </span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/kyodo-logo-black.svg" alt="Kyodo Lab" className="h-3.5 dark:hidden" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/kyodo-logo-white.svg" alt="Kyodo Lab" className="h-3.5 hidden dark:block" />
           </div>
         </header>
       )}
