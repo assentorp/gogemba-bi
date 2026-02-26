@@ -28,8 +28,12 @@ function getWeekYear(year: number, week: number, delta: number): { year: number;
   return { year: y, week: w };
 }
 
+function isoWeekToDate(year: number, week: number): Date {
+  return startOfISOWeek(setISOWeek(setISOWeekYear(new Date(), year), week));
+}
+
 function getWeekDateRange(year: number, week: number): string {
-  const refDate = startOfISOWeek(setISOWeek(setISOWeekYear(new Date(), year), week));
+  const refDate = isoWeekToDate(year, week);
   const end = endOfISOWeek(refDate);
   return `${format(refDate, 'd MMM')} – ${format(end, 'd MMM yyyy')}`;
 }
@@ -138,20 +142,11 @@ export function ProjectEconomyReport() {
   const totalActualDKK = sumDKK(projectEntries);
   const totalActualRate = avgRate(projectEntries);
 
-  // Week actuals
-  const weekActualHours = sumHours(weekEntries);
-  const weekActualDKK = sumDKK(weekEntries);
-  const weekActualRate = avgRate(weekEntries);
-
-  // Month actuals
-  const monthActualHours = sumHours(monthEntries);
-  const monthActualDKK = sumDKK(monthEntries);
-  const monthActualRate = avgRate(monthEntries);
-
-  // Period-aware actuals
-  const periodHours = periodMode === 'weekly' ? weekActualHours : monthActualHours;
-  const periodDKK = periodMode === 'weekly' ? weekActualDKK : monthActualDKK;
-  const periodRate = periodMode === 'weekly' ? weekActualRate : monthActualRate;
+  // Period actuals (week or month depending on mode)
+  const periodEntries = periodMode === 'weekly' ? weekEntries : monthEntries;
+  const periodHours = sumHours(periodEntries);
+  const periodDKK = sumDKK(periodEntries);
+  const periodRate = avgRate(periodEntries);
 
   // 9-week trend data (selectedWeek-4 to selectedWeek+4)
   const trendData = useMemo(() => {
@@ -237,7 +232,7 @@ export function ProjectEconomyReport() {
     const totalProjectMonths = matchedBudget ? (() => {
       const monthSet = new Set<string>();
       for (const wb of matchedBudget.weeklyBudgets) {
-        const d = startOfISOWeek(setISOWeek(setISOWeekYear(new Date(), wb.year), wb.week));
+        const d = isoWeekToDate(wb.year, wb.week);
         monthSet.add(`${d.getFullYear()}-${d.getMonth() + 1}`);
       }
       return Math.max(monthSet.size, 1);
@@ -264,7 +259,7 @@ export function ProjectEconomyReport() {
     if (matchedBudget) {
       const monthSet = new Set<string>();
       for (const wb of matchedBudget.weeklyBudgets) {
-        const d = startOfISOWeek(setISOWeek(setISOWeekYear(new Date(), wb.year), wb.week));
+        const d = isoWeekToDate(wb.year, wb.week);
         const mKey = `${d.getFullYear()}-${d.getMonth() + 1}`;
         if (d.getFullYear() < first.year || (d.getFullYear() === first.year && d.getMonth() + 1 < first.month)) {
           monthSet.add(mKey);
@@ -281,7 +276,7 @@ export function ProjectEconomyReport() {
 
       // Check if this month falls within the project budget range
       const hasProjectActivity = matchedBudget?.weeklyBudgets.some(wb => {
-        const d = startOfISOWeek(setISOWeek(setISOWeekYear(new Date(), wb.year), wb.week));
+        const d = isoWeekToDate(wb.year, wb.week);
         return d.getFullYear() === year && d.getMonth() + 1 === month;
       });
       const budgetHours = hasProjectActivity ? evenMonthBudgetHours : 0;
@@ -355,8 +350,13 @@ export function ProjectEconomyReport() {
 
   const hasBudget = matchedBudget && matchedBudget.totalBudgetHours > 0;
 
-  // Percentage for Grand Total donut
+  // Donut gauge data
   const totalHoursPct = hasBudget ? (totalActualHours / matchedBudget!.totalBudgetHours) * 100 : 0;
+  const donutPct = Math.min(totalHoursPct, 100);
+  const donutData = [{ value: donutPct }, { value: 100 - donutPct }];
+  const donutColor = totalHoursPct > 100 ? '#ef4444' : '#22c55e';
+  const donutTrack = isDark ? '#2a2a2c' : '#f3f4f6';
+  const remainingHours = hasBudget ? Math.max(0, matchedBudget!.totalBudgetHours - totalActualHours) : 0;
 
   const periodLabel = periodMode === 'weekly'
     ? `${getWeekLabel(selectedWeek)} — ${selectedYear}`
@@ -445,44 +445,27 @@ export function ProjectEconomyReport() {
 
           {/* Donut gauge */}
           <div className="bg-white dark:bg-[#161618] rounded-xl border border-stone-200 dark:border-white/[0.10] p-4 flex flex-col items-center justify-center">
-            {hasBudget ? (() => {
-              const pct = Math.min(totalHoursPct, 100);
-              const donutData = [{ value: pct }, { value: 100 - pct }];
-              const gaugeColor = totalHoursPct > 100 ? '#ef4444' : '#22c55e';
-              const trackColor = isDark ? '#2a2a2c' : '#f3f4f6';
-              const remaining = Math.max(0, matchedBudget!.totalBudgetHours - totalActualHours);
-              return (
-                <>
-                  <div className="relative w-44 h-44">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={donutData}
-                          cx="50%"
-                          cy="50%"
-                          startAngle={90}
-                          endAngle={-270}
-                          innerRadius="70%"
-                          outerRadius="95%"
-                          dataKey="value"
-                          stroke="none"
-                        >
-                          <Cell fill={gaugeColor} />
-                          <Cell fill={trackColor} />
-                        </Pie>
-                      </PieChart>
-                    </ResponsiveContainer>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <p className="text-3xl font-bold text-stone-900 dark:text-stone-100">{Math.round(totalHoursPct)}%</p>
-                      <p className="text-[11px] text-stone-500 dark:text-stone-400">Hours used</p>
-                    </div>
+            {hasBudget ? (
+              <>
+                <div className="relative w-44 h-44">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={donutData} cx="50%" cy="50%" startAngle={90} endAngle={-270} innerRadius="70%" outerRadius="95%" dataKey="value" stroke="none">
+                        <Cell fill={donutColor} />
+                        <Cell fill={donutTrack} />
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <p className="text-3xl font-bold text-stone-900 dark:text-stone-100">{Math.round(totalHoursPct)}%</p>
+                    <p className="text-[11px] text-stone-500 dark:text-stone-400">Hours used</p>
                   </div>
-                  <p className="text-sm text-stone-500 dark:text-stone-400 mt-1">
-                    Remaining: <span className="font-medium text-stone-700 dark:text-stone-300">{formatHours(remaining)} hrs</span>
-                  </p>
-                </>
-              );
-            })() : (
+                </div>
+                <p className="text-sm text-stone-500 dark:text-stone-400 mt-1">
+                  Remaining: <span className="font-medium text-stone-700 dark:text-stone-300">{formatHours(remainingHours)} hrs</span>
+                </p>
+              </>
+            ) : (
               <p className="text-sm text-stone-400">No budget data</p>
             )}
           </div>

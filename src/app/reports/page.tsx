@@ -9,6 +9,7 @@ import printer from 'lucide-static/icons/printer.svg';
 import { formatDKK, formatHours, formatRate, getMonthLabelFull, getMonthLabel, getWeekLabel } from '@/lib/date-utils';
 import { sumDKK, sumHours, avgRate, getEntriesForMonth, activeProjectCount } from '@/lib/calculations';
 import { ProjectEconomyReport } from '@/components/reports/ProjectEconomyReport';
+import { KyodoLogo } from '@/components/KyodoLogo';
 
 export default function ReportsPage() {
   const { data, loading, error } = useData();
@@ -152,10 +153,7 @@ export default function ReportsPage() {
                     </p>
                   )}
                 </div>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/kyodo-logo-black.svg" alt="Kyodo Lab" className="h-5 dark:hidden" />
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/kyodo-logo-white.svg" alt="Kyodo Lab" className="h-5 hidden dark:block" />
+                <KyodoLogo className="h-5" />
               </div>
             </div>
             <ProjectEconomyReport />
@@ -175,10 +173,7 @@ export default function ReportsPage() {
                     : `${getMonthLabelFull(selectedMonth)} ${selectedYear}`
               }</p>
             </div>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/kyodo-logo-black.svg" alt="Kyodo Lab" className="h-5 dark:hidden" />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/kyodo-logo-white.svg" alt="Kyodo Lab" className="h-5 hidden dark:block" />
+            <KyodoLogo className="h-5" />
           </div>
         </div>
 
