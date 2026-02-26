@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Icon } from './Icon';
+import { KyodoLogo } from './KyodoLogo';
 
 import layoutDashboard from 'lucide-static/icons/layout-dashboard.svg';
 import folderKanban from 'lucide-static/icons/folder-kanban.svg';
@@ -87,9 +88,7 @@ export function Sidebar({ isCollapsed, onToggleCollapse, isMobile, mobileMenuOpe
         ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         <div className="flex items-center justify-between px-4 h-14 border-b border-stone-200 dark:border-white/[0.06]">
-          <span className="text-sm font-semibold text-stone-800 dark:text-stone-200">
-            kyodo <span className="text-stone-500 dark:text-stone-400">lab</span>
-          </span>
+          <KyodoLogo />
           <button
             onClick={onMobileClose}
             className="p-1.5 rounded-md text-stone-500 dark:text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 hover:bg-neutral-100 dark:hover:bg-white/[0.06] transition-colors"
@@ -161,8 +160,8 @@ export function Sidebar({ isCollapsed, onToggleCollapse, isMobile, mobileMenuOpe
       flex flex-col
     ">
       <div className="flex items-center justify-between px-4 h-14 border-b border-stone-200 dark:border-white/[0.06]">
-        <Link href="/" className="text-sm font-semibold text-stone-800 dark:text-stone-200">
-          kyodo <span className="text-stone-500 dark:text-stone-400">lab</span>
+        <Link href="/" className="flex items-center">
+          <KyodoLogo />
         </Link>
         <button
           onClick={onToggleCollapse}

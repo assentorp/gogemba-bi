@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { promises as fs } from 'fs';
 import path from 'path';
-import type { ParsedData, TimesheetEntry } from '@/lib/types';
+import type { BudgetEntry, ParsedData, TimesheetEntry } from '@/lib/types';
 import { getEazyProjectEntries } from '@/lib/eazyproject';
+import { parseBudgetExcel } from '@/lib/budget-parser';
 
 const CUTOFF_DATE = '2026-01-01';
 
@@ -32,7 +33,18 @@ export async function GET() {
     const grandTotalDKK = allEntries.reduce((s, e) => s + e.totalDKK, 0);
     const avgRate = grandTotalHours > 0 ? grandTotalDKK / grandTotalHours : 0;
 
-    // 6. Keep metadata from static file (resources, projects, activities have FTE config etc.)
+    // 6. Parse budget data
+    let budgetEntries: BudgetEntry[] = [];
+    let budgetMeta;
+    try {
+      const budget = parseBudgetExcel();
+      budgetEntries = budget.entries;
+      budgetMeta = budget.meta;
+    } catch (err) {
+      console.error('[api/data] Budget parse failed:', err);
+    }
+
+    // 7. Keep metadata from static file (resources, projects, activities have FTE config etc.)
     const merged: ParsedData = {
       entries: allEntries,
       resources: staticData.resources,
@@ -41,6 +53,8 @@ export async function GET() {
       grandTotalHours,
       grandTotalDKK,
       avgRate,
+      budgetEntries,
+      budgetMeta,
     };
 
     return NextResponse.json(merged);

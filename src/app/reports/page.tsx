@@ -8,11 +8,13 @@ import { Icon } from '@/components/Icon';
 import printer from 'lucide-static/icons/printer.svg';
 import { formatDKK, formatHours, formatRate, getMonthLabelFull, getMonthLabel, getWeekLabel } from '@/lib/date-utils';
 import { sumDKK, sumHours, avgRate, getEntriesForMonth, activeProjectCount } from '@/lib/calculations';
+import { ProjectEconomyReport } from '@/components/reports/ProjectEconomyReport';
+import { KyodoLogo } from '@/components/KyodoLogo';
 
 export default function ReportsPage() {
   const { data, loading, error } = useData();
-  const { filteredEntries, selectedYear, selectedMonth, isAllTime } = useFilters();
-  const [reportMode, setReportMode] = useState<'monthly' | 'weekly'>('monthly');
+  const { filteredEntries, selectedYear, selectedMonth, isAllTime, filters } = useFilters();
+  const [reportMode, setReportMode] = useState<'monthly' | 'weekly' | 'project-economy'>('monthly');
 
   // Force light mode during print so dark backgrounds don't bleed through
   const handleBeforePrint = useCallback(() => {
@@ -120,23 +122,44 @@ export default function ReportsPage() {
           <Icon src={printer} className="size-3.5" />
           Print / Save as PDF
         </button>
-        {!isAllTime && (
-          <div className="flex h-9 rounded-lg border border-stone-200 dark:border-white/[0.10] overflow-hidden">
-            {(['monthly', 'weekly'] as const).map(mode => (
-              <button key={mode} onClick={() => setReportMode(mode)}
-                className={`px-3.5 text-sm font-medium transition-colors ${reportMode === mode
-                  ? 'bg-stone-900 dark:bg-stone-700 text-white'
-                  : 'bg-white dark:bg-transparent text-stone-600 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-white/[0.04]'
-                }`}
-              >
-                {mode === 'monthly' ? 'Monthly' : 'Weekly'}
-              </button>
-            ))}
-          </div>
-        )}
+        <div className="flex h-9 rounded-lg border border-stone-200 dark:border-white/[0.10] overflow-hidden">
+          {([
+            { key: 'monthly' as const, label: 'Monthly', hideAllTime: true },
+            { key: 'weekly' as const, label: 'Weekly', hideAllTime: true },
+            { key: 'project-economy' as const, label: 'Project Economy', hideAllTime: false },
+          ]).filter(m => !isAllTime || !m.hideAllTime).map(mode => (
+            <button key={mode.key} onClick={() => setReportMode(mode.key)}
+              className={`px-3.5 text-sm font-medium transition-colors ${reportMode === mode.key
+                ? 'bg-stone-900 dark:bg-stone-700 text-white'
+                : 'bg-white dark:bg-transparent text-stone-600 dark:text-stone-400 hover:bg-stone-50 dark:hover:bg-white/[0.04]'
+              }`}
+            >
+              {mode.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="px-6 pb-8 max-w-4xl mx-auto" id="report-content">
+        {reportMode === 'project-economy' ? (
+          <>
+            <div className="border-b-2 border-stone-300 dark:border-stone-700 pb-4 mb-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-semibold text-stone-900 dark:text-stone-100">Project Economy Report</h2>
+                  {filteredEntries.length > 0 && (
+                    <p className="text-stone-500 dark:text-stone-400 mt-1">
+                      {filteredEntries[0].client}{filters.projects.length === 1 ? ` — ${filters.projects[0]}` : ''}
+                    </p>
+                  )}
+                </div>
+                <KyodoLogo className="h-5" />
+              </div>
+            </div>
+            <ProjectEconomyReport />
+          </>
+        ) : (
+        <>
         <div className="border-b-2 border-stone-300 dark:border-stone-700 pb-4 mb-6">
           <div className="flex items-center justify-between">
             <div>
@@ -150,9 +173,7 @@ export default function ReportsPage() {
                     : `${getMonthLabelFull(selectedMonth)} ${selectedYear}`
               }</p>
             </div>
-            <span className="text-lg font-semibold tracking-tight text-stone-900 dark:text-stone-100">
-              kyodo <span className="text-stone-500 dark:text-stone-400">lab</span>
-            </span>
+            <KyodoLogo className="h-5" />
           </div>
         </div>
 
@@ -263,6 +284,8 @@ export default function ReportsPage() {
           <span>Generated {new Date().toLocaleDateString('da-DK')}</span>
           <span>Kyodo ApS - Business Intelligence</span>
         </div>
+        </>
+        )}
       </div>
     </div>
   );

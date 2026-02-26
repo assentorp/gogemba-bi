@@ -44,6 +44,40 @@ export interface ParsedData {
   grandTotalHours: number;
   grandTotalDKK: number;
   avgRate: number;
+  budgetEntries?: BudgetEntry[];
+  budgetMeta?: BudgetMeta;
+}
+
+export interface BudgetEntry {
+  year: number;
+  month: number; // 1-12
+  sbu: string;
+  resource: string;
+  budgetHours: number;
+  avgRate: number;
+  budgetDKK: number;
+}
+
+export interface BudgetResourceDef {
+  name: string;
+  initials: string;
+  avgRate: number;
+  utilizationTarget: number; // e.g. 0.85
+}
+
+export interface BudgetSpecialDate {
+  date: string; // ISO date
+  description: string;
+  impact: string; // "None", "Half day off", "Office closed"
+}
+
+export interface BudgetMeta {
+  hoursPerDay: number;
+  workingDaysPerMonth: Record<number, number>; // month (1-12) -> working days
+  resources: BudgetResourceDef[];
+  specialDates: BudgetSpecialDate[];
+  yearTotalBudget: number;
+  yearTotalWorkingDays: number;
 }
 
 export interface MonthlyBudget {
@@ -66,6 +100,37 @@ export interface FilterState {
 }
 
 export type BusinessArea = 'Consultancy' | 'Projects & Services' | 'Products';
+
+// ── Project Economy (task-level budget from EazyProject) ─────────
+
+export interface TaskBudget {
+  taskId: number;
+  taskName: string;
+  projectId: number;
+  projectTitle: string;
+  startDate: string; // ISO date
+  endDate: string; // ISO date
+  budgetHours: number;
+  budgetAmount: number;
+  isOngoing: boolean;
+  status: string;
+}
+
+export interface WeeklyBudget {
+  year: number;
+  week: number;
+  budgetHours: number;
+  budgetAmount: number;
+}
+
+export interface ProjectBudgetSummary {
+  projectId: number;
+  projectTitle: string;
+  totalBudgetHours: number;
+  totalBudgetAmount: number;
+  weeklyBudgets: WeeklyBudget[];
+  tasks: TaskBudget[];
+}
 
 export interface KPIData {
   turnoverMTD: number;

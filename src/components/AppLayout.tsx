@@ -4,6 +4,7 @@ import { useState, useEffect, ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 import { Sidebar } from './sidebar';
 import { Breadcrumb } from './Breadcrumb';
+import { KyodoLogo } from './KyodoLogo';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -52,9 +53,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             </svg>
           </button>
           <div className="ml-3 flex items-center gap-2">
-            <span className="text-xs font-semibold text-stone-800 dark:text-stone-200">
-              kyodo <span className="text-stone-500 dark:text-stone-400">lab</span>
-            </span>
+            <KyodoLogo className="h-3.5" />
           </div>
         </header>
       )}
