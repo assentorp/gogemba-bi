@@ -12,6 +12,8 @@ import { useTheme } from '@/context/ThemeContext';
 import { Icon } from '@/components/Icon';
 import chevronLeft from 'lucide-static/icons/chevron-left.svg';
 import chevronRight from 'lucide-static/icons/chevron-right.svg';
+import arrowUpDown from 'lucide-static/icons/arrow-up-down.svg';
+import download from 'lucide-static/icons/download.svg';
 import { formatDKK, formatHours, formatRate, getWeekLabel, getMonthLabelFull } from '@/lib/date-utils';
 import { getEntriesForWeek, getEntriesForMonth, sumHours, sumDKK, avgRate } from '@/lib/calculations';
 import type { ProjectBudgetSummary } from '@/lib/types';
@@ -141,6 +143,59 @@ export function ProjectEconomyReport() {
   const totalActualHours = sumHours(projectEntries);
   const totalActualDKK = sumDKK(projectEntries);
   const totalActualRate = avgRate(projectEntries);
+
+  // Hourly detail table state
+  type SortKey = 'date' | 'resource' | 'hours' | 'totalDKK' | 'rate';
+  const [hourSortKey, setHourSortKey] = useState<SortKey>('date');
+  const [hourSortAsc, setHourSortAsc] = useState(false);
+  const [hourSearch, setHourSearch] = useState('');
+
+  const sortedEntries = useMemo(() => {
+    let entries = [...projectEntries];
+    if (hourSearch) {
+      const q = hourSearch.toLowerCase();
+      entries = entries.filter(e =>
+        e.resource.toLowerCase().includes(q) || e.description.toLowerCase().includes(q) ||
+        e.activity.toLowerCase().includes(q)
+      );
+    }
+    entries.sort((a, b) => {
+      let cmp = 0;
+      switch (hourSortKey) {
+        case 'date': cmp = a.date.localeCompare(b.date); break;
+        case 'resource': cmp = a.resource.localeCompare(b.resource); break;
+        case 'hours': cmp = a.hours - b.hours; break;
+        case 'totalDKK': cmp = a.totalDKK - b.totalDKK; break;
+        case 'rate': cmp = a.rate - b.rate; break;
+      }
+      return hourSortAsc ? cmp : -cmp;
+    });
+    return entries;
+  }, [projectEntries, hourSortKey, hourSortAsc, hourSearch]);
+
+  const sortedTotalHours = useMemo(() => sortedEntries.reduce((s, e) => s + e.hours, 0), [sortedEntries]);
+  const sortedTotalDKK = useMemo(() => sortedEntries.reduce((s, e) => s + e.totalDKK, 0), [sortedEntries]);
+
+  function toggleHourSort(key: SortKey) {
+    if (hourSortKey === key) setHourSortAsc(v => !v);
+    else { setHourSortKey(key); setHourSortAsc(false); }
+  }
+
+  function exportCSV() {
+    const headers = ['Date', 'Activity', 'Resource', 'Description', 'Hours', 'Rate', 'Total DKK'];
+    const rows = sortedEntries.map(e => [
+      e.date, e.activity, e.resource,
+      `"${e.description.replace(/"/g, '""')}"`, e.hours, e.rate, e.totalDKK,
+    ]);
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `kyodo-hours-${selectedProject?.replace(/\s+/g, '-').toLowerCase()}-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   // Period actuals (week or month depending on mode)
   const periodEntries = periodMode === 'weekly' ? weekEntries : monthEntries;
@@ -708,6 +763,95 @@ export function ProjectEconomyReport() {
           </div>
         </div>
         )}
+      </section>
+
+      {/* ── Section D: Hourly Detail ──────────────────────────── */}
+      <section>
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <h3 className="text-sm font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">
+            Hourly Detail
+          </h3>
+          <div className="no-print flex items-center gap-3">
+            <input
+              type="text"
+              placeholder="Search..."
+              value={hourSearch}
+              onChange={e => setHourSearch(e.target.value)}
+              className="h-8 px-3 text-sm border border-stone-200 dark:border-white/[0.10] rounded-md bg-white dark:bg-[#161618] text-stone-900 dark:text-stone-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 w-48 placeholder:text-stone-400 dark:placeholder:text-stone-500"
+            />
+            <span className="text-xs text-stone-500 dark:text-stone-400">
+              {sortedEntries.length} entries
+            </span>
+            <button onClick={exportCSV}
+              className="h-8 px-3 text-xs font-medium text-white bg-stone-900 dark:bg-stone-700 rounded-lg hover:bg-stone-800 dark:hover:bg-stone-600 transition-colors flex items-center gap-1.5"
+            >
+              <Icon src={download} className="size-3" />
+              CSV
+            </button>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-[#161618] rounded-xl border border-stone-200 dark:border-white/[0.10] overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-stone-50 dark:bg-white/[0.03] text-xs text-stone-500 dark:text-stone-400 uppercase tracking-wider">
+                  {([
+                    { label: 'Date', field: 'date' as SortKey },
+                    { label: 'Activity', field: null },
+                    { label: 'Resource', field: 'resource' as SortKey },
+                    { label: 'Description', field: null },
+                    { label: 'Hours', field: 'hours' as SortKey, align: 'right' },
+                    { label: 'Rate', field: 'rate' as SortKey, align: 'right' },
+                    { label: 'Total DKK', field: 'totalDKK' as SortKey, align: 'right' },
+                  ]).map(col => col.field ? (
+                    <th key={col.label}
+                      className={`px-4 py-2.5 cursor-pointer hover:text-stone-700 dark:hover:text-stone-200 select-none ${col.align === 'right' ? 'text-right' : 'text-left'}`}
+                      onClick={() => toggleHourSort(col.field!)}
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        {col.label}
+                        <Icon src={arrowUpDown} className={`size-3 ${hourSortKey === col.field ? 'text-stone-900 dark:text-stone-100' : 'text-stone-300 dark:text-stone-600'}`} />
+                      </span>
+                    </th>
+                  ) : (
+                    <th key={col.label} className="px-4 py-2.5 text-left">{col.label}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-stone-100 dark:divide-white/[0.06]">
+                {sortedEntries.slice(0, 500).map((e, i) => (
+                  <tr key={i} className="hover:bg-stone-50 dark:hover:bg-white/[0.03]">
+                    <td className="px-4 py-2 text-stone-600 dark:text-stone-400 whitespace-nowrap">{e.date}</td>
+                    <td className="px-4 py-2 text-stone-500 dark:text-stone-400">{e.activity}</td>
+                    <td className="px-4 py-2 text-stone-600 dark:text-stone-400">{e.resource}</td>
+                    <td className="px-4 py-2 text-stone-500 dark:text-stone-400 max-w-[240px] truncate" title={e.description}>{e.description}</td>
+                    <td className="px-4 py-2 text-right text-stone-700 dark:text-stone-300">{e.hours}</td>
+                    <td className="px-4 py-2 text-right text-stone-500 dark:text-stone-400">{formatRate(e.rate)}</td>
+                    <td className="px-4 py-2 text-right font-medium text-stone-900 dark:text-stone-100">{formatDKK(e.totalDKK)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="bg-stone-50 dark:bg-white/[0.03] font-semibold border-t border-stone-200 dark:border-white/[0.06]">
+                  <td className="px-4 py-2.5 text-stone-900 dark:text-stone-100" colSpan={4}>
+                    Total ({sortedEntries.length} entries)
+                  </td>
+                  <td className="px-4 py-2.5 text-right text-stone-900 dark:text-stone-100">{formatHours(sortedTotalHours)}</td>
+                  <td className="px-4 py-2.5 text-right text-stone-500 dark:text-stone-400">
+                    {sortedTotalHours > 0 ? formatRate(sortedTotalDKK / sortedTotalHours) : '—'}
+                  </td>
+                  <td className="px-4 py-2.5 text-right text-stone-900 dark:text-stone-100">{formatDKK(sortedTotalDKK)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          {sortedEntries.length > 500 && (
+            <div className="px-5 py-3 text-sm text-stone-500 dark:text-stone-400 bg-stone-50 dark:bg-white/[0.03] border-t border-stone-200 dark:border-white/[0.06]">
+              Showing first 500 of {sortedEntries.length} entries. Export CSV for full data.
+            </div>
+          )}
+        </div>
       </section>
     </div>
   );
